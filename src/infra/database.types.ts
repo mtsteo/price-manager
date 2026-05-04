@@ -28,6 +28,7 @@ export type Database = {
           category?: string | null;
           updated_at?: string;
         };
+        Relationships: [];
       };
       price_records: {
         Row: {
@@ -51,8 +52,19 @@ export type Database = {
           store?: string | null;
           recorded_at?: string;
         };
+        Relationships: [
+          {
+            foreignKeyName: "price_records_product_id_fkey";
+            columns: ["product_id"];
+            referencedRelation: "products";
+            referencedColumns: ["id"];
+          },
+        ];
       };
     };
+    Views: {};
+    Functions: {};
+    Enums: {};
   };
 };
 

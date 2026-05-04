@@ -10,7 +10,6 @@ import {
   Spinner,
   Inline,
   Tag,
-  IconSearchRegular,
   IconShoppingCartRegular,
   Divider,
 } from "@telefonica/mistica";
