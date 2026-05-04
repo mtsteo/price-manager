@@ -8,7 +8,7 @@ export function useBarcodeScanner() {
   const [error, setError] = useState<string | null>(null);
   const controlsRef = useRef<{ stop: () => void } | null>(null);
 
-  const startScanning = useCallback(async () => {
+  const startScanning = useCallback(() => {
     setError(null);
     setBarcode(null);
     setScanning(true);
@@ -23,39 +23,51 @@ export function useBarcodeScanner() {
   }, []);
 
   useEffect(() => {
-    if (!scanning || !videoRef.current) return;
+    if (!scanning) return;
 
-    const reader = new BrowserMultiFormatReader();
     let stopped = false;
+    let timeoutId: ReturnType<typeof setTimeout>;
 
-    const decode = async () => {
-      try {
-        const controls = await reader.decodeFromVideoDevice(
-          undefined,
-          videoRef.current!,
-          (result) => {
-            if (result && !stopped) {
-              setBarcode(result.getText());
-              setScanning(false);
-              controls.stop();
-            }
-          },
-        );
-        controlsRef.current = controls;
-      } catch (err) {
-        if (!stopped) {
-          setError(
-            err instanceof Error ? err.message : "Erro ao acessar câmera",
-          );
-          setScanning(false);
-        }
+    const startDecode = () => {
+      if (stopped) return;
+
+      const videoEl = videoRef.current;
+      if (!videoEl) {
+        timeoutId = setTimeout(startDecode, 100);
+        return;
       }
+
+      const reader = new BrowserMultiFormatReader();
+
+      reader
+        .decodeFromVideoDevice(undefined, videoEl, (result) => {
+          if (result && !stopped) {
+            setBarcode(result.getText());
+            setScanning(false);
+          }
+        })
+        .then((controls) => {
+          if (stopped) {
+            controls.stop();
+          } else {
+            controlsRef.current = controls;
+          }
+        })
+        .catch((err) => {
+          if (!stopped) {
+            setError(
+              err instanceof Error ? err.message : "Erro ao acessar câmera",
+            );
+            setScanning(false);
+          }
+        });
     };
 
-    decode();
+    startDecode();
 
     return () => {
       stopped = true;
+      clearTimeout(timeoutId);
       if (controlsRef.current) {
         controlsRef.current.stop();
         controlsRef.current = null;

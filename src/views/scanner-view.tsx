@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Stack,
   Title1,
@@ -90,9 +90,11 @@ export function ScannerView() {
     }
   };
 
-  if (barcode && !scanning && !product && !loading && !notFound) {
-    handleBarcodeDetected(barcode);
-  }
+  useEffect(() => {
+    if (barcode && !scanning && !product && !loading && !notFound) {
+      handleBarcodeDetected(barcode);
+    }
+  }, [barcode, scanning, product, loading, notFound]);
 
   return (
     <Box padding={16}>
