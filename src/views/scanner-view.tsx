@@ -2,7 +2,9 @@ import { useState, useEffect } from "react";
 import {
   Stack,
   Title1,
+  Title3,
   Text2,
+  Text3,
   Box,
   Boxed,
   ButtonPrimary,
@@ -20,7 +22,23 @@ import {
   useBarcodeSearch,
   useAddPrice,
   useCreateProduct,
+  useProductDetail,
 } from "../hooks/use-products";
+
+function formatCurrency(value: number): string {
+  return new Intl.NumberFormat("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  }).format(value);
+}
+
+function formatDate(dateStr: string): string {
+  return new Intl.DateTimeFormat("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  }).format(new Date(dateStr));
+}
 
 export function ScannerView() {
   const {
@@ -41,6 +59,11 @@ export function ScannerView() {
   } = useBarcodeSearch();
   const { create: createProduct, loading: creating } = useCreateProduct();
   const { addPrice, loading: addingPrice } = useAddPrice();
+  const {
+    productDetail,
+    loading: loadingDetail,
+    loadDetail,
+  } = useProductDetail();
 
   const [manualBarcode, setManualBarcode] = useState("");
   const [newProductName, setNewProductName] = useState("");
@@ -49,6 +72,7 @@ export function ScannerView() {
   const [price, setPrice] = useState("");
   const [store, setStore] = useState("");
   const [success, setSuccess] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
 
   const handleBarcodeDetected = (code: string) => {
     searchByBarcode(code);
@@ -71,6 +95,7 @@ export function ScannerView() {
       setSuccess(true);
       setPrice("");
       setStore("");
+      loadDetail(product.id);
     }
   };
 
@@ -95,6 +120,12 @@ export function ScannerView() {
       handleBarcodeDetected(barcode);
     }
   }, [barcode, scanning, product, loading, notFound]);
+
+  useEffect(() => {
+    if (product) {
+      loadDetail(product.id);
+    }
+  }, [product]);
 
   return (
     <Box padding={16}>
@@ -157,14 +188,95 @@ export function ScannerView() {
               <Box padding={16}>
                 <Stack space={8}>
                   <Inline space="between" alignItems="center">
-                    <Text2 medium>{product.name}</Text2>
+                    <Text3 medium>{product.name}</Text3>
                     <Tag type="success">Encontrado</Tag>
                   </Inline>
                   {product.brand && <Text2 regular>{product.brand}</Text2>}
                   <Text2 regular>Cód: {product.barcode}</Text2>
+                  {product.category && (
+                    <Tag type="info">{product.category}</Tag>
+                  )}
                 </Stack>
               </Box>
             </Boxed>
+
+            {loadingDetail && <Spinner />}
+
+            {productDetail && productDetail.price_records.length > 0 && (
+              <Boxed>
+                <Box padding={16}>
+                  <Stack space={12}>
+                    <Inline space="between" alignItems="center">
+                      <Text2 medium>Último preço</Text2>
+                      <Text3 medium>
+                        {formatCurrency(
+                          productDetail.price_records[
+                            productDetail.price_records.length - 1
+                          ].price,
+                        )}
+                      </Text3>
+                    </Inline>
+                    <Inline space="between">
+                      <Text2 regular>
+                        {formatDate(
+                          productDetail.price_records[
+                            productDetail.price_records.length - 1
+                          ].recorded_at,
+                        )}
+                      </Text2>
+                      {productDetail.price_records[
+                        productDetail.price_records.length - 1
+                      ].store && (
+                        <Text2 regular>
+                          {
+                            productDetail.price_records[
+                              productDetail.price_records.length - 1
+                            ].store
+                          }
+                        </Text2>
+                      )}
+                    </Inline>
+                    <Text2 regular>
+                      {productDetail.price_records.length} registro
+                      {productDetail.price_records.length !== 1 ? "s" : ""} no
+                      total
+                    </Text2>
+                  </Stack>
+                </Box>
+              </Boxed>
+            )}
+
+            {productDetail && productDetail.price_records.length > 0 && (
+              <ButtonSecondary onPress={() => setShowHistory(!showHistory)}>
+                {showHistory ? "Ocultar histórico" : "Ver histórico de preços"}
+              </ButtonSecondary>
+            )}
+
+            {showHistory && productDetail && (
+              <Stack space={8}>
+                <Title3 as="h2">Histórico de Preços</Title3>
+                {productDetail.price_records
+                  .slice()
+                  .reverse()
+                  .map((record) => (
+                    <Boxed key={record.id}>
+                      <Box padding={12}>
+                        <Inline space="between" alignItems="center">
+                          <Stack space={4}>
+                            <Text2 medium>{formatCurrency(record.price)}</Text2>
+                            <Text2 regular>
+                              {formatDate(record.recorded_at)}
+                            </Text2>
+                          </Stack>
+                          {record.store && (
+                            <Tag type="info">{record.store}</Tag>
+                          )}
+                        </Inline>
+                      </Box>
+                    </Boxed>
+                  ))}
+              </Stack>
+            )}
 
             <Divider />
 
@@ -191,6 +303,7 @@ export function ScannerView() {
               onPress={() => {
                 reset();
                 setSuccess(false);
+                setShowHistory(false);
               }}
             >
               Escanear outro produto

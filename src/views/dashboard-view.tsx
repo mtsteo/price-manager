@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import {
   Stack,
   Title1,
+  Title3,
   Text2,
   Text3,
   Inline,
@@ -13,8 +14,10 @@ import {
   IconInformationUserRegular,
   Chip,
   Divider,
+  ButtonSecondary,
+  Spinner,
 } from "@telefonica/mistica";
-import { useProducts } from "../hooks/use-products";
+import { useProducts, useProductDetail } from "../hooks/use-products";
 import type { ProductWithLatestPrice } from "../infra/product-gateway";
 
 function formatCurrency(value: number): string {
@@ -24,7 +27,21 @@ function formatCurrency(value: number): string {
   }).format(value);
 }
 
-function ProductCard({ product }: { product: ProductWithLatestPrice }) {
+function formatDate(dateStr: string): string {
+  return new Intl.DateTimeFormat("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  }).format(new Date(dateStr));
+}
+
+function ProductCard({
+  product,
+  onPress,
+}: {
+  product: ProductWithLatestPrice;
+  onPress: () => void;
+}) {
   return (
     <Boxed>
       <Box padding={16}>
@@ -48,19 +65,121 @@ function ProductCard({ product }: { product: ProductWithLatestPrice }) {
               <Text2 regular>{product.latest_store}</Text2>
             )}
           </Inline>
+          <ButtonSecondary small onPress={onPress}>
+            Ver histórico
+          </ButtonSecondary>
         </Stack>
       </Box>
     </Boxed>
   );
 }
 
+function ProductDetailPanel({
+  productId,
+  onBack,
+}: {
+  productId: string;
+  onBack: () => void;
+}) {
+  const { productDetail, loading, error, loadDetail } = useProductDetail();
+
+  useEffect(() => {
+    loadDetail(productId);
+  }, [productId, loadDetail]);
+
+  if (loading) {
+    return (
+      <Box padding={16}>
+        <Stack space={16}>
+          <Spinner />
+          <Text2 regular>Carregando histórico...</Text2>
+        </Stack>
+      </Box>
+    );
+  }
+
+  if (error) {
+    return (
+      <Box padding={16}>
+        <Stack space={16}>
+          <IconInformationUserRegular size={32} />
+          <Text2 regular>{error}</Text2>
+          <ButtonSecondary onPress={onBack}>Voltar</ButtonSecondary>
+        </Stack>
+      </Box>
+    );
+  }
+
+  if (!productDetail) return null;
+
+  return (
+    <Box padding={16}>
+      <Stack space={16}>
+        <ButtonSecondary onPress={onBack}>← Voltar</ButtonSecondary>
+
+        <Boxed>
+          <Box padding={16}>
+            <Stack space={8}>
+              <Title3 as="h2">{productDetail.name}</Title3>
+              {productDetail.brand && (
+                <Text2 regular>{productDetail.brand}</Text2>
+              )}
+              <Text2 regular>Cód: {productDetail.barcode}</Text2>
+              {productDetail.category && (
+                <Tag type="info">{productDetail.category}</Tag>
+              )}
+            </Stack>
+          </Box>
+        </Boxed>
+
+        <Title3 as="h2">Histórico de Preços</Title3>
+
+        {productDetail.price_records.length === 0 ? (
+          <Text2 regular>Nenhum preço registrado ainda.</Text2>
+        ) : (
+          <Stack space={8}>
+            {productDetail.price_records
+              .slice()
+              .reverse()
+              .map((record) => (
+                <Boxed key={record.id}>
+                  <Box padding={12}>
+                    <Inline space="between" alignItems="center">
+                      <Stack space={4}>
+                        <Text3 medium>{formatCurrency(record.price)}</Text3>
+                        <Text2 regular>{formatDate(record.recorded_at)}</Text2>
+                      </Stack>
+                      {record.store && <Tag type="info">{record.store}</Tag>}
+                    </Inline>
+                  </Box>
+                </Boxed>
+              ))}
+          </Stack>
+        )}
+      </Stack>
+    </Box>
+  );
+}
+
 export function DashboardView() {
   const { products, loading, error, loadProducts } = useProducts();
   const [filter, setFilter] = useState<string | null>(null);
+  const [selectedProductId, setSelectedProductId] = useState<string | null>(
+    null,
+  );
 
   useEffect(() => {
     loadProducts();
   }, [loadProducts]);
+
+  if (selectedProductId) {
+    return (
+      <ProductDetailPanel
+        productId={selectedProductId}
+        onBack={() => setSelectedProductId(null)}
+      />
+    );
+  }
 
   const categories = Array.from(
     new Set(products.map((p) => p.category).filter(Boolean)),
@@ -158,7 +277,11 @@ export function DashboardView() {
         ) : (
           <Stack space={8}>
             {filteredProducts.map((product) => (
-              <ProductCard key={product.id} product={product} />
+              <ProductCard
+                key={product.id}
+                product={product}
+                onPress={() => setSelectedProductId(product.id)}
+              />
             ))}
           </Stack>
         )}
