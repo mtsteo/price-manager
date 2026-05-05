@@ -19,3 +19,14 @@ body {
   min-height: 100vh;
   background-color: #f0f0f5;
 }
+
+@media (prefers-color-scheme: dark) {
+  html,
+  body {
+    background-color: #1a1a2e;
+  }
+
+  #root {
+    background-color: #1a1a2e;
+  }
+}

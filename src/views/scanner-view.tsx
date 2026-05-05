@@ -73,6 +73,10 @@ export function ScannerView() {
   const [store, setStore] = useState("");
   const [success, setSuccess] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
+  const [showManualCreate, setShowManualCreate] = useState(false);
+  const [manualCreateBarcode, setManualCreateBarcode] = useState("");
+  const [manualCreatePrice, setManualCreatePrice] = useState("");
+  const [manualCreateStore, setManualCreateStore] = useState("");
 
   const handleBarcodeDetected = (code: string) => {
     searchByBarcode(code);
@@ -115,6 +119,33 @@ export function ScannerView() {
     }
   };
 
+  const handleManualCreateProduct = async () => {
+    if (!newProductName || !manualCreateBarcode.trim()) return;
+    const created = await createProduct({
+      barcode: manualCreateBarcode.trim(),
+      name: newProductName,
+      brand: newProductBrand || null,
+      category: newProductCategory || null,
+    });
+    if (created) {
+      if (manualCreatePrice) {
+        await addPrice({
+          product_id: created.id,
+          price: parseFloat(manualCreatePrice),
+          store: manualCreateStore || null,
+        });
+      }
+      setNewProductName("");
+      setNewProductBrand("");
+      setNewProductCategory("");
+      setManualCreateBarcode("");
+      setManualCreatePrice("");
+      setManualCreateStore("");
+      setShowManualCreate(false);
+      searchByBarcode(created.barcode);
+    }
+  };
+
   useEffect(() => {
     if (barcode && !scanning && !product && !loading && !notFound) {
       handleBarcodeDetected(barcode);
@@ -132,7 +163,7 @@ export function ScannerView() {
       <Stack space={24}>
         <Title1>Scanner de Produto</Title1>
 
-        {!scanning && !product && !notFound && (
+        {!scanning && !product && !notFound && !showManualCreate && (
           <Stack space={16}>
             <ButtonPrimary onPress={startScanning}>
               Escanear Código de Barras
@@ -149,6 +180,75 @@ export function ScannerView() {
             />
             <ButtonSecondary onPress={handleManualSearch}>
               Buscar
+            </ButtonSecondary>
+
+            <Divider />
+
+            <ButtonSecondary onPress={() => setShowManualCreate(true)}>
+              Cadastrar produto manualmente
+            </ButtonSecondary>
+          </Stack>
+        )}
+
+        {showManualCreate && !product && (
+          <Stack space={16}>
+            <Title3 as="h2">Cadastrar Produto</Title3>
+            <TextField
+              name="manualCreateBarcode"
+              label="Código de barras"
+              value={manualCreateBarcode}
+              onChangeValue={setManualCreateBarcode}
+            />
+            <TextField
+              name="productName"
+              label="Nome do produto"
+              value={newProductName}
+              onChangeValue={setNewProductName}
+            />
+            <TextField
+              name="productBrand"
+              label="Marca (opcional)"
+              value={newProductBrand}
+              onChangeValue={setNewProductBrand}
+            />
+            <TextField
+              name="productCategory"
+              label="Categoria (opcional)"
+              value={newProductCategory}
+              onChangeValue={setNewProductCategory}
+            />
+
+            <Divider />
+
+            <Text2 medium>Preço inicial (opcional)</Text2>
+            <TextField
+              name="manualCreatePrice"
+              label="Preço (R$)"
+              value={manualCreatePrice}
+              onChangeValue={setManualCreatePrice}
+            />
+            <TextField
+              name="manualCreateStore"
+              label="Loja (opcional)"
+              value={manualCreateStore}
+              onChangeValue={setManualCreateStore}
+            />
+
+            <ButtonPrimary onPress={handleManualCreateProduct}>
+              {creating ? "Cadastrando..." : "Cadastrar Produto"}
+            </ButtonPrimary>
+            <ButtonSecondary
+              onPress={() => {
+                setShowManualCreate(false);
+                setManualCreateBarcode("");
+                setNewProductName("");
+                setNewProductBrand("");
+                setNewProductCategory("");
+                setManualCreatePrice("");
+                setManualCreateStore("");
+              }}
+            >
+              Cancelar
             </ButtonSecondary>
           </Stack>
         )}

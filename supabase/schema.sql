@@ -33,3 +33,33 @@ CREATE POLICY "Allow anonymous access to products" ON products
 
 CREATE POLICY "Allow anonymous access to price_records" ON price_records
   FOR ALL USING (true) WITH CHECK (true);
+
+-- Monthly Purchases
+CREATE TABLE IF NOT EXISTS purchases (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  store TEXT NOT NULL,
+  purchased_at DATE NOT NULL DEFAULT CURRENT_DATE,
+  notes TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS purchase_items (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  purchase_id UUID NOT NULL REFERENCES purchases(id) ON DELETE CASCADE,
+  product_id UUID NOT NULL REFERENCES products(id),
+  price NUMERIC(10, 2) NOT NULL,
+  quantity INTEGER NOT NULL DEFAULT 1,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX idx_purchases_purchased_at ON purchases(purchased_at);
+CREATE INDEX idx_purchase_items_purchase_id ON purchase_items(purchase_id);
+
+ALTER TABLE purchases ENABLE ROW LEVEL SECURITY;
+ALTER TABLE purchase_items ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Allow anonymous access to purchases" ON purchases
+  FOR ALL USING (true) WITH CHECK (true);
+
+CREATE POLICY "Allow anonymous access to purchase_items" ON purchase_items
+  FOR ALL USING (true) WITH CHECK (true);

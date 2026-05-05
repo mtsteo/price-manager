@@ -61,6 +61,68 @@ export type Database = {
           },
         ];
       };
+      purchases: {
+        Row: {
+          id: string;
+          store: string;
+          purchased_at: string;
+          notes: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          store: string;
+          purchased_at?: string;
+          notes?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          store?: string;
+          purchased_at?: string;
+          notes?: string | null;
+        };
+        Relationships: [];
+      };
+      purchase_items: {
+        Row: {
+          id: string;
+          purchase_id: string;
+          product_id: string;
+          price: number;
+          quantity: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          purchase_id: string;
+          product_id: string;
+          price: number;
+          quantity?: number;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          purchase_id?: string;
+          product_id?: string;
+          price?: number;
+          quantity?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "purchase_items_purchase_id_fkey";
+            columns: ["purchase_id"];
+            referencedRelation: "purchases";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "purchase_items_product_id_fkey";
+            columns: ["product_id"];
+            referencedRelation: "products";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
     };
     Views: {};
     Functions: {};
@@ -73,3 +135,10 @@ export type PriceRecord = Database["public"]["Tables"]["price_records"]["Row"];
 export type ProductInsert = Database["public"]["Tables"]["products"]["Insert"];
 export type PriceRecordInsert =
   Database["public"]["Tables"]["price_records"]["Insert"];
+export type Purchase = Database["public"]["Tables"]["purchases"]["Row"];
+export type PurchaseItem =
+  Database["public"]["Tables"]["purchase_items"]["Row"];
+export type PurchaseInsert =
+  Database["public"]["Tables"]["purchases"]["Insert"];
+export type PurchaseItemInsert =
+  Database["public"]["Tables"]["purchase_items"]["Insert"];
